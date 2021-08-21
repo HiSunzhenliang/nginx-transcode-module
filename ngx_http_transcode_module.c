@@ -29,13 +29,12 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     log = r->connection->log;
     path = generate_path(r->pool, root, r->uri);
     code = transcode(&output, r->pool, log, path, output_format);
-
     if (code) {
         code = NGX_HTTP_TRANSCODE_MODULE_FOUND;
     }
 
-    u_char* tmp = ngx_palloc(r->pool,100);
-    ngx_sprintf(tmp,"hello ngx");
+    u_char *tmp = ngx_palloc(r->pool, 100);
+    ngx_sprintf(tmp, "hello ngx");
     output.data = tmp;
     output.len = ngx_strlen(tmp);
     /* todo */
@@ -44,20 +43,21 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     if (buff == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
+    set_buffer(buff, &output);
     buff->pos = output.data;
-    buff->last = output.data + (output.len * sizeof(unsigned char));
+    buff->last = output.data + (output.len * sizeof(u_char));
     buff->memory = 1;
     buff->last_buf = 1;
 
     r->headers_out.status = NGX_HTTP_OK;
     r->headers_out.content_length_n = output.len;
-
-    out.buf = buff;
-    out.next = NULL;
     err = ngx_http_send_header(r);
     if (err == NGX_ERROR || err > NGX_OK || r->header_only) {
         return err;
     }
+
+    out.buf = buff;
+    out.next = NULL;
 
     return ngx_http_output_filter(r, &out);
 }
@@ -82,8 +82,7 @@ static void *ngx_http_transcode_create_loc_conf(ngx_conf_t *cf) {
     return conf;
 }
 
-static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent,
-                                        void *child) {
+static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child) {
     ngx_http_transcode_loc_conf_t *prev = parent;
     ngx_http_transcode_loc_conf_t *conf = child;
 
@@ -97,7 +96,7 @@ static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent,
     }
 
     if ((!conf->root) && (conf->enabled)) {
-        ngx_conf_log_error( NGX_LOG_ERR, cf, 0, "transcode: need audio root");
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "transcode: need audio root");
         return NGX_CONF_ERROR;
     }
 
