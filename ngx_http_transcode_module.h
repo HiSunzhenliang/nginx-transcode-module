@@ -7,6 +7,13 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+typedef enum {
+    NGX_HTTP_TRANSCODE_MODULE_FOUND = 0,
+    NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND,
+    NGX_HTTP_TRANSCODE_MODULE_NO_DECODER,
+    NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER
+} status_code;
+
 typedef struct {
     ngx_flag_t enabled;
     ngx_http_complex_value_t *root;
