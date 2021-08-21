@@ -29,28 +29,36 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     log = r->connection->log;
     path = generate_path(r->pool, root, r->uri);
     code = transcode(&output, r->pool, log, path, output_format);
-    if (code) {
-        code = NGX_HTTP_TRANSCODE_MODULE_FOUND;
+
+    switch (code) {
+        case NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND:
+            r->headers_out.status = NGX_HTTP_NOT_FOUND;
+            break;
+        case NGX_HTTP_TRANSCODE_MODULE_NO_DECODER:
+            r->headers_out.status = NGX_HTTP_NOT_IMPLEMENTED;
+            break;
+        case NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER:
+            r->headers_out.status = NGX_HTTP_NOT_IMPLEMENTED;
+            break;
+        default:
+            r->headers_out.status = NGX_HTTP_OK;
+            break;
+    }
+    if (r->headers_out.status == NGX_HTTP_OK) {
+        buff = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+        if (buff == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+        buff->pos = output.data;
+        buff->last = output.data + (output.len * sizeof(u_char));
+        buff->memory = 1;
+        buff->last_buf = 1;
+        r->headers_out.content_length_n = output.len;
+    }else{
+        r->header_only = 1;
+        r->headers_out.content_length_n = 0;
     }
 
-    u_char *tmp = ngx_palloc(r->pool, 100);
-    ngx_sprintf(tmp, "hello ngx");
-    output.data = tmp;
-    output.len = ngx_strlen(tmp);
-    /* todo */
-
-    buff = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
-    if (buff == NULL) {
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
-    set_buffer(buff, &output);
-    buff->pos = output.data;
-    buff->last = output.data + (output.len * sizeof(u_char));
-    buff->memory = 1;
-    buff->last_buf = 1;
-
-    r->headers_out.status = NGX_HTTP_OK;
-    r->headers_out.content_length_n = output.len;
     err = ngx_http_send_header(r);
     if (err == NGX_ERROR || err > NGX_OK || r->header_only) {
         return err;
