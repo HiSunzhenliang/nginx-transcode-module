@@ -116,10 +116,19 @@ static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent, voi
     return NGX_CONF_OK;
 }
 
-static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t rootpath, ngx_str_t uri) {
-    /* todo */
-    ngx_str_t tmp = ngx_null_string;
-    return tmp;
+static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t root, ngx_str_t uri) {
+    ngx_int_t len;
+    ngx_str_t path;
+    u_char *dot;
+
+    dot = ngx_strchr(uri.data, ".");
+    len = (uri.len - (uri.data + uri.len - dot)) + root.len + ngx_strlen(".mp3");
+    path.data = ngx_calloc(pool, len * sizeof(u_char));
+    ngx_cpystrn(path.data, root.data, root.len);
+    ngx_cpystrn(path.data + root.len, uri.data, uri.len);
+    ngx_cpystrn(path.data + root.len + uri.len, ".mp3", ngx_strlen(".mp3"));
+
+    return path;
 }
 
 static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, ngx_str_t source, ngx_str_t fmt) {
