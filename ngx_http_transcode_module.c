@@ -10,7 +10,7 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     status_code code;
     ngx_log_t *log;
     ngx_chain_t out;
-    ngx_buf_t *buff;
+    ngx_buf_t *buff = NULL;
     ngx_http_transcode_loc_conf_t *conf;
     ngx_str_t root = ngx_null_string;
     ngx_str_t output_format = ngx_null_string;
@@ -121,12 +121,12 @@ static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t root, ngx_str_t uri) 
     ngx_str_t path;
     u_char *dot;
 
-    dot = ngx_strchr(uri.data, ".");
+    dot = (u_char *)ngx_strchr(uri.data, '.');
     len = (uri.len - (uri.data + uri.len - dot)) + root.len + ngx_strlen(".mp3");
-    path.data = ngx_calloc(pool, len * sizeof(u_char));
+    path.data = ngx_pcalloc(pool, len * sizeof(u_char));
     ngx_cpystrn(path.data, root.data, root.len);
     ngx_cpystrn(path.data + root.len, uri.data, uri.len);
-    ngx_cpystrn(path.data + root.len + uri.len, ".mp3", ngx_strlen(".mp3"));
+    ngx_cpystrn(path.data + root.len + uri.len, (u_char *)".mp3", ngx_strlen(".mp3"));
 
     return path;
 }
