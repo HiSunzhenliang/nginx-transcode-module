@@ -40,6 +40,9 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
         case NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER:
             r->headers_out.status = NGX_HTTP_NOT_IMPLEMENTED;
             break;
+        case NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR:
+            r->headers_out.status = NGX_HTTP_NOT_IMPLEMENTED;
+            break;
         default:
             r->headers_out.status = NGX_HTTP_OK;
             break;
@@ -132,6 +135,49 @@ static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t root, ngx_str_t uri) 
 }
 
 static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, ngx_str_t source, ngx_str_t fmt) {
-    /* todo */
-    return 0;
+    ngx_int_t code;
+    sox_format_t *in, *out;
+    char *buffer;
+    size_t buffer_size;
+    size_t number_read;
+#define MAX_SAMPLES (size_t)2048
+    sox_sample_t samples[MAX_SAMPLES];
+
+    if (access((char *)source.data, F_OK)) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: input file not found.");
+        return NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND;
+    }
+
+    if (sox_init() != SOX_SUCCESS) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: libsox init fail.");
+        return NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR;
+    }
+
+    in = sox_open_read((char *)source.data, NULL, NULL, NULL);
+    if(!in){
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: encoder not found.");
+        return NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER;
+    }
+
+    sox_signalinfo_t out_signal = {8000, 1, 0, 0, NULL};
+
+    out = sox_open_memstream_write(&buffer, &buffer_size, &out_signal, NULL, "mp3", NULL);
+    if(!out){
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
+        return NGX_HTTP_TRANSCODE_MODULE_NO_DECODER;
+    }
+
+    while ((number_read = sox_read(in, samples, MAX_SAMPLES))){
+        if (sox_write(out, samples, number_read) == number_read) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: trans err.");
+            return NGX_HTTP_TRANSCODE_MODULE_TRANS_ERROR;
+        }
+    }
+
+    sox_close(out);
+    sox_close(in);
+    free(buffer);
+    sox_quit();
+
+    return NGX_OK;
 }
