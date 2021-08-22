@@ -121,15 +121,18 @@ static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent, voi
 
 static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t root, ngx_str_t uri) {
     ngx_int_t len;
+    ngx_int_t dirlen;
     ngx_str_t path;
     u_char *dot;
 
     dot = (u_char *)ngx_strchr(uri.data, '.');
-    len = (uri.len - (uri.data + uri.len - dot)) + root.len + ngx_strlen(".mp3");
+    dirlen = uri.len - (uri.data + uri.len - dot);
+    len = root.len + dirlen + ngx_strlen(".wav");
     path.data = ngx_pcalloc(pool, len * sizeof(u_char));
-    ngx_cpystrn(path.data, root.data, root.len);
-    ngx_cpystrn(path.data + root.len, uri.data, uri.len);
-    ngx_cpystrn(path.data + root.len + uri.len, (u_char *)".mp3", ngx_strlen(".mp3"));
+    path.len = len;
+    ngx_memcpy(path.data, root.data, root.len);
+    ngx_memcpy(path.data + root.len, uri.data, dirlen);
+    ngx_memcpy(path.data + root.len + dirlen, (u_char *)".wav", ngx_strlen(".wav"));
 
     return path;
 }
@@ -145,7 +148,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     sox_sample_t samples[MAX_SAMPLES];
 
     if (access((char *)source.data, F_OK)) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: input file not found.");
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: input file not found : %s.", source.data);
         code = NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND;
         goto err;
     }
