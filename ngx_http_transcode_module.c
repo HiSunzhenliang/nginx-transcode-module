@@ -136,8 +136,9 @@ static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t root, ngx_str_t uri) 
 
 static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, ngx_str_t source, ngx_str_t fmt) {
     ngx_int_t code;
-    sox_format_t *in, *out;
-    char *buffer;
+    sox_format_t *in = NULL;
+    sox_format_t *out = NULL;
+    char *buffer = NULL;
     size_t buffer_size;
     size_t number_read;
 #define MAX_SAMPLES (size_t)2048
@@ -145,30 +146,36 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
 
     if (access((char *)source.data, F_OK)) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: input file not found.");
-        return NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND;
+        code = NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND;
+        goto err;
     }
 
     if (sox_init() != SOX_SUCCESS) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: libsox init fail.");
-        return NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR;
+        code = NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR;
+        goto err;
     }
 
     in = sox_open_read((char *)source.data, NULL, NULL, NULL);
-    if(!in){
+    if (!in) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: encoder not found.");
-        return NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER;
+        code = NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER;
+        goto err;
     }
 
-    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, "mp3", NULL);
-    if(!out){
+    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL,
+                                   "mp3", NULL);
+    if (!out) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
-        return NGX_HTTP_TRANSCODE_MODULE_NO_DECODER;
+        code = NGX_HTTP_TRANSCODE_MODULE_NO_DECODER;
+        goto err;
     }
 
-    while ((number_read = sox_read(in, samples, MAX_SAMPLES))){
+    while ((number_read = sox_read(in, samples, MAX_SAMPLES))) {
         if (sox_write(out, samples, number_read) == number_read) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: trans err.");
-            return NGX_HTTP_TRANSCODE_MODULE_TRANS_ERROR;
+            code = NGX_HTTP_TRANSCODE_MODULE_TRANS_ERROR;
+            goto err;
         }
     }
 
@@ -176,6 +183,17 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     sox_close(in);
     free(buffer);
     sox_quit();
-
     return NGX_OK;
+err:
+    if (in) {
+        sox_close(in);
+    }
+    if (out) {
+        sox_close(out);
+    }
+    if (buffer) {
+        free(buffer);
+    }
+    sox_quit();
+    return code;
 }
