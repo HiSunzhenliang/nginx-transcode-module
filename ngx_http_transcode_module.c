@@ -159,9 +159,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         return NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER;
     }
 
-    sox_signalinfo_t out_signal = {8000, 1, 0, 0, NULL};
-
-    out = sox_open_memstream_write(&buffer, &buffer_size, &out_signal, NULL, "mp3", NULL);
+    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, "mp3", NULL);
     if(!out){
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
         return NGX_HTTP_TRANSCODE_MODULE_NO_DECODER;
