@@ -43,6 +43,9 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
         case NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR:
             r->headers_out.status = NGX_HTTP_NOT_IMPLEMENTED;
             break;
+        case NGX_HTTP_TRANSCODE_MODULE_TRANS_ERROR:
+            r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            break;
         default:
             r->headers_out.status = NGX_HTTP_OK;
             break;
