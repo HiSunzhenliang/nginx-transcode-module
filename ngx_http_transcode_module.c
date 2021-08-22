@@ -169,8 +169,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         goto err;
     }
 
-    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL,
-                                   "mp3", NULL);
+    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, "mp3", NULL);
     if (!out) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
         code = NGX_HTTP_TRANSCODE_MODULE_NO_DECODER;
@@ -178,15 +177,17 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     }
 
     while ((number_read = sox_read(in, samples, MAX_SAMPLES))) {
-        if (sox_write(out, samples, number_read) == number_read) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: trans err.");
-            code = NGX_HTTP_TRANSCODE_MODULE_TRANS_ERROR;
-            goto err;
-        }
+        sox_write(out, samples, number_read);
     }
+    fflush(out->fp);
 
     sox_close(out);
     sox_close(in);
+
+    output->data = ngx_pcalloc(pool, buffer_size * sizeof(u_char));
+    output->len = buffer_size;
+    ngx_memcpy(output->data, buffer, buffer_size);
+
     free(buffer);
     sox_quit();
     return NGX_OK;
