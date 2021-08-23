@@ -147,6 +147,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     char *buffer = NULL;
     size_t buffer_size;
     size_t number_read;
+    ngx_int_t open_libsox = 0;
 #define MAX_SAMPLES (size_t)2048
     sox_sample_t samples[MAX_SAMPLES];
 
@@ -161,6 +162,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         code = NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR;
         goto err;
     }
+    open_libsox = 1;
 
     in = sox_open_read((char *)source.data, NULL, NULL, NULL);
     if (!in) {
@@ -201,6 +203,8 @@ err:
     if (buffer) {
         free(buffer);
     }
-    sox_quit();
+    if (open_libsox) {
+        sox_quit();
+    }
     return code;
 }
