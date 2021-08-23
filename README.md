@@ -47,7 +47,7 @@ Get `a.mp3` transcoded from `a.wav`.
 ```
 MIT License
 
-Copyright (c) 2021 Alliswell
+Copyright (c) 2021 sunzhenliang
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
