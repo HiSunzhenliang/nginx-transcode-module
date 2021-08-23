@@ -5,6 +5,10 @@
 
 #include "ngx_http_transcode_module.h"
 
+
+#define MAX_SAMPLES (size_t)2048
+#define MAX_FMT_LEN (size_t)16
+
 static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     ngx_int_t err;
     status_code code;
@@ -144,11 +148,11 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     ngx_int_t code;
     sox_format_t *in = NULL;
     sox_format_t *out = NULL;
+    char output_format[MAX_FMT_LEN] = {0};
     char *buffer = NULL;
     size_t buffer_size;
     size_t number_read;
     ngx_int_t open_libsox = 0;
-#define MAX_SAMPLES (size_t)2048
     sox_sample_t samples[MAX_SAMPLES];
 
     if (access((char *)source.data, F_OK)) {
@@ -171,7 +175,13 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         goto err;
     }
 
-    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, "mp3", NULL);
+    if (fmt.len >= MAX_FMT_LEN) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: format name too long.");
+        code = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        goto err;
+    }
+    snprintf(output_format, fmt.len + 1, "%s", fmt.data);
+    out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, output_format, NULL);
     if (!out) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
         code = NGX_HTTP_TRANSCODE_MODULE_NO_DECODER;
