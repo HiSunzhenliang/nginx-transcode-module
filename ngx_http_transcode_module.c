@@ -22,8 +22,15 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     ngx_str_t path = ngx_null_string;
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_transcode_module);
-    ngx_http_complex_value(r, conf->root, &root);
-    ngx_http_complex_value(r, conf->output_format, &output_format);
+    if (conf->root) {
+        ngx_http_complex_value(r, conf->root, &root);
+    }
+    if (conf->output_format) {
+        ngx_http_complex_value(r, conf->output_format, &output_format);
+    }
+    if ((conf->enabled && !conf->root) || !conf->enabled) {
+        return NGX_CONF_ERROR;
+    }
 
     err = ngx_http_discard_request_body(r);
     if (err != NGX_OK) {
@@ -119,11 +126,6 @@ static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent, voi
 
     if ((!conf->root) && (conf->enabled)) {
         ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "transcode: need audio root");
-        return NGX_CONF_ERROR;
-    }
-
-    if ((!conf->output_format) && (conf->enabled)) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "transcode: need output format");
         return NGX_CONF_ERROR;
     }
 
