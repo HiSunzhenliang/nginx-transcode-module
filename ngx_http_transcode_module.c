@@ -20,6 +20,7 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     ngx_str_t output_format = ngx_null_string;
     ngx_str_t output = ngx_null_string;
     ngx_str_t path = ngx_null_string;
+    ngx_str_t matched_path = ngx_null_string;
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_transcode_module);
     if (conf->root) {
@@ -46,7 +47,12 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    code = transcode(&output, r->pool, log, path, output_format);
+    matched_path = match_path(r->pool, log, path);
+    if (!matched_path.data) {
+        return NGX_HTTP_NOT_FOUND;
+    }
+
+    code = transcode(&output, r->pool, log, matched_path, output_format);
 
     switch (code) {
         case NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND:
@@ -152,6 +158,12 @@ static ngx_str_t generate_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t root,
     ngx_memcpy(path.data, root.data, root.len);
     ngx_memcpy(path.data + root.len, uri.data, uri.len);
     return path;
+}
+
+static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path){
+    ngx_str_t matched = ngx_null_string;
+    /* todo */
+    return matched;
 }
 
 static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, ngx_str_t source, ngx_str_t fmt) {
