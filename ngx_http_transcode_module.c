@@ -31,7 +31,11 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     }
 
     log = r->connection->log;
-    path = generate_path(r->pool, root, r->uri);
+    path = generate_path(r->pool, log, root, r->uri);
+    if (!path.data) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
+
     code = transcode(&output, r->pool, log, path, output_format);
 
     switch (code) {
@@ -126,21 +130,22 @@ static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *cf, void *parent, voi
     return NGX_CONF_OK;
 }
 
-static ngx_str_t generate_path(ngx_pool_t *pool, ngx_str_t root, ngx_str_t uri) {
-    ngx_int_t len;
-    ngx_int_t dirlen;
-    ngx_str_t path;
-    u_char *dot;
+/*
+ * Splice root and URI
+ */
+static ngx_str_t generate_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t root, ngx_str_t uri) {
+    ngx_str_t path = ngx_null_string;
 
-    dot = (u_char *)ngx_strchr(uri.data, '.');
-    dirlen = uri.len - (uri.data + uri.len - dot);
-    len = root.len + dirlen + ngx_strlen(".wav");
-    path.data = ngx_pcalloc(pool, len * sizeof(u_char));
-    path.len = len;
+    path.data = ngx_pcalloc(pool, (root.len + uri.len) * sizeof(u_char));
+    if (!path.data) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: can not alloc for path");
+        ngx_str_null(&path);
+        return path;
+    }
+
+    path.len = root.len + uri.len;
     ngx_memcpy(path.data, root.data, root.len);
-    ngx_memcpy(path.data + root.len, uri.data, dirlen);
-    ngx_memcpy(path.data + root.len + dirlen, (u_char *)".wav", ngx_strlen(".wav"));
-
+    ngx_memcpy(path.data + root.len, uri.data, uri.len);
     return path;
 }
 
@@ -154,9 +159,11 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     size_t number_read;
     ngx_int_t open_libsox = 0;
     sox_sample_t samples[MAX_SAMPLES];
+    char source_path[NGX_MAX_PATH] = {0};
 
-    if (access((char *)source.data, F_OK)) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: input file not found : %s.", source.data);
+    ngx_snprintf((u_char *)source_path, source.len, "%V", &source);
+    if (access(source_path, F_OK)) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: input file not found : %s.", source_path);
         code = NGX_HTTP_TRANSCODE_MODULE_NOT_FOUND;
         goto err;
     }
@@ -168,7 +175,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
     }
     open_libsox = 1;
 
-    in = sox_open_read((char *)source.data, NULL, NULL, NULL);
+    in = sox_open_read(source_path, NULL, NULL, NULL);
     if (!in) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: encoder not found.");
         code = NGX_HTTP_TRANSCODE_MODULE_NO_ENCODER;
@@ -180,7 +187,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         code = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto err;
     }
-    snprintf(output_format, fmt.len + 1, "%s", fmt.data);
+    ngx_snprintf((u_char*)output_format, fmt.len, "%V", &fmt);
     out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, output_format, NULL);
     if (!out) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
