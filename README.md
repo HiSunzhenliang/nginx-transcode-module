@@ -40,8 +40,10 @@ $ ls /path/audios
 a.wav b.wav c.wav ...
 ```
 
-Send request `http://127.0.0.1:8000/a.mp3`
-
+Send request like:
+```
+curl -v http://127.0.0.1:8000/a.wav -o a.mp3`
+```
 Get `a.mp3` transcoded from `a.wav`.
 
 ## Copyright & License
@@ -68,4 +70,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
