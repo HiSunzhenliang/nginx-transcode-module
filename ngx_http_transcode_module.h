@@ -31,6 +31,8 @@ static char *ngx_http_transcode_merge_loc_conf(ngx_conf_t *, void *, void *);
 
 static ngx_str_t generate_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t root, ngx_str_t uri);
 
+static ngx_str_t get_output_format(ngx_pool_t *pool, ngx_str_t uri);
+
 static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, ngx_str_t source, ngx_str_t fmt);
 
 static ngx_command_t ngx_http_transcode_commands[] = {
