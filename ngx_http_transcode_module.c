@@ -27,9 +27,12 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     }
     if (conf->output_format) {
         ngx_http_complex_value(r, conf->output_format, &output_format);
+    }else{
+        output_format = get_output_format(r->pool, r->uri);
     }
-    if ((conf->enabled && !conf->root) || !conf->enabled) {
-        return NGX_CONF_ERROR;
+
+    if (!output_format.data) {
+        return NGX_HTTP_BAD_REQUEST;
     }
 
     err = ngx_http_discard_request_body(r);
@@ -226,4 +229,19 @@ err:
         sox_quit();
     }
     return code;
+}
+
+static ngx_str_t get_output_format(ngx_pool_t *pool, ngx_str_t uri) {
+    ngx_str_t fmt = ngx_null_string;
+    ngx_int_t fmtlen;
+
+    u_char *dot = (u_char *)ngx_strchr(uri.data, '.');
+    if (!dot) {
+        return fmt;
+    }
+    fmtlen = uri.data + uri.len - dot - 1;
+    fmt.data = ngx_pcalloc(pool, fmtlen * sizeof(u_char));
+    ngx_memcpy(fmt.data, dot + 1, fmtlen);
+    fmt.len = fmtlen;
+    return fmt;
 }
