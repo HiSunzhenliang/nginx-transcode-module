@@ -226,6 +226,10 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
     }
 
     ngx_log_stderr(0, "FIND: %s", ngx_de_name(&dir));
+    matched.data = ngx_pcalloc(pool, dirpath.len + ngx_de_namelen(&dir));
+    matched.len = dirpath.len + ngx_de_namelen(&dir);
+    ngx_memcpy(matched.data, dirpath.data, dirpath.len);
+    ngx_memcpy(matched.data + dirpath.len, ngx_de_name(&dir), ngx_de_namelen(&dir));
 
     return matched;
 }
