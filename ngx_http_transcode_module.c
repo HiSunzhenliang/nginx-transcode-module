@@ -154,42 +154,47 @@ static ngx_str_t generate_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t root,
         ngx_str_null(&path);
         return path;
     }
-
+    ngx_snprintf(path.data, root.len + uri.len, "%V%V", &root, &uri);
     path.len = root.len + uri.len;
-    ngx_memcpy(path.data, root.data, root.len);
-    ngx_memcpy(path.data + root.len, uri.data, uri.len);
     return path;
 }
 
 static ngx_str_t get_dir(ngx_pool_t *pool, ngx_str_t path) {
     ngx_str_t dir = ngx_null_string;
+    u_char *dirpath = ngx_pcalloc(pool, path.len + 1);
+    u_char *p;
     if (!path.data) {
         return dir;
     }
-    dir.data = ngx_pstrdup(pool, &path);
-    if (!dir.data) {
+    ngx_snprintf(dirpath, path.len, "%V", &path);
+    p = (u_char *)dirname((char *)dirpath);
+    if (!p) {
         return dir;
     }
-    dir.data = (u_char *)dirname((char *)dir.data);
-    dir.len = ngx_strlen(dir.data);
+    dir.data = p;
+    dir.len = ngx_strlen(p);
+
     return dir;
 }
 
 static ngx_str_t get_namebase(ngx_pool_t *pool, ngx_str_t path) {
     ngx_str_t namebase = ngx_null_string;
+    u_char *name = ngx_pcalloc(pool, path.len + 1);
+    u_char *p;
     if (!path.data) {
         return namebase;
     }
-    namebase.data = ngx_pstrdup(pool, &path);
-    if (!namebase.data) {
+    ngx_snprintf(name, path.len, "%V", &path);
+    p = (u_char *)basename((char *)name);
+    if (!p) {
         return namebase;
     }
-    namebase.data = (u_char *)basename((char *)namebase.data);
-    u_char *dot = (u_char *)ngx_strchr((char *)namebase.data, '.');
+    u_char *dot = (u_char *)ngx_strchr((char *)p, '.');
     if (dot) {
         *dot = '\0';
     }
-    namebase.len = ngx_strlen(namebase.data);
+    namebase.data = p;
+    namebase.len = ngx_strlen(p);
 
     return namebase;
 }
@@ -205,13 +210,11 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: get dir fail %V", &path);
         return matched;
     }
-    ngx_log_stderr(0, "%V", &dirpath);
     namebase = get_namebase(pool, path);
     if (!namebase.data) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: get dir fail %V", &path);
         return matched;
     }
-    ngx_log_stderr(0, "%V", &namebase);
     if (ngx_open_dir(&dirpath, &dir) == NGX_ERROR) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: cant not open dir %V",
                       &dirpath);
@@ -219,17 +222,14 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
     }
 
     while (ngx_read_dir(&dir) == NGX_OK) {
-        ngx_log_stderr(0, "%s", ngx_de_name(&dir));
         if(!ngx_filename_cmp(namebase.data,ngx_de_name(&dir),namebase.len)) {
             break;
         }
     }
 
-    ngx_log_stderr(0, "FIND: %s", ngx_de_name(&dir));
     matched.data = ngx_pcalloc(pool, dirpath.len + ngx_de_namelen(&dir));
-    matched.len = dirpath.len + ngx_de_namelen(&dir);
-    ngx_memcpy(matched.data, dirpath.data, dirpath.len);
-    ngx_memcpy(matched.data + dirpath.len, ngx_de_name(&dir), ngx_de_namelen(&dir));
+    ngx_sprintf(matched.data,"%V/%s",&dirpath,ngx_de_name(&dir));
+    matched.len = dirpath.len + ngx_de_namelen(&dir) + 1;
 
     return matched;
 }
