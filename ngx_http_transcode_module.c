@@ -253,6 +253,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         goto err;
     }
 
+    sox_globals.verbosity = 0;
     if (sox_init() != SOX_SUCCESS) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: libsox init fail.");
         code = NGX_HTTP_TRANSCODE_MODULE_LIBSOX_ERROR;
