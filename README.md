@@ -46,6 +46,14 @@ curl -v http://127.0.0.1:8000/a.wav -o a.mp3`
 ```
 Get `a.mp3` transcoded from `a.wav`.
 
+If `transcode_output_format` is not specified, output format will be set to the extension of the uri.
+
+Send request like:
+```
+curl -v http://127.0.0.1:8000/b.mp3 -o b.mp3`
+```
+Get `b.mp3` transcoded from `b.wav`.
+
 ## Copyright & License
 ```
 MIT License
