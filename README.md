@@ -4,7 +4,7 @@ Nginx module for media transcoding
 
 ## Description
 
-This project is used as nginx third-party module.
+This project is a nginx third-party module.
 
 Accept HTTP requests, find the files according to the configuration, transcode it and return it in the required format.
 
@@ -47,7 +47,13 @@ curl -v http://127.0.0.1:8000/a.wav -o a.mp3`
 Get `a.mp3` transcoded from `a.wav`.
 
 If `transcode_output_format` is not specified, output format will be set to the extension of the uri.
-
+```
+location ~ / {
+    nginx-transcode-module;
+    transcode_root "/path/audios";
+    # transcode_output_format "mp3";
+}
+```
 Send request like:
 ```
 curl -v http://127.0.0.1:8000/b.mp3 -o b.mp3`
