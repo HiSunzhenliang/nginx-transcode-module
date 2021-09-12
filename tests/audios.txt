@@ -1,6 +1,0 @@
-pcm.wav
-alaw.wav
-ulaw.wav
-amrnb.amr-nb
-amrwb.amr-wb
-mpeg.mp3
