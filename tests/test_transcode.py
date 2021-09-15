@@ -4,6 +4,7 @@
 
 import os
 import urllib.request
+import subprocess
 
 PORT = 8080
 HOST = "127.0.0.1"
@@ -60,6 +61,8 @@ def generate_targetlist(origin_list):
                    for namebase in namebases for _, exten in TARGET]
     return target_list
 
+def callcmd(cmd):
+    return subprocess.check_output(cmd,shell=True,stderr=subprocess.PIPE,encoding="utf-8",timeout=1)
 
 def main():
     origin_list = []
@@ -69,7 +72,7 @@ def main():
     targets = download_target(target_list)
     print(f"\nTargets:")
     for i in targets:
-        print(i)
+        print(f"{i}\n{callcmd(f'soxi -e {i}')}{callcmd(f'soxi -d {i}')}")
 
 
 if __name__ == '__main__':
