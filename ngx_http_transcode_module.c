@@ -203,6 +203,7 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
     ngx_str_t matched = ngx_null_string;
     ngx_str_t dirpath = ngx_null_string;
     ngx_str_t namebase = ngx_null_string;
+    ngx_int_t r = 0;
     ngx_dir_t dir;
 
     dirpath = get_dir(pool, path);
@@ -223,13 +224,16 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
 
     while (ngx_read_dir(&dir) == NGX_OK) {
         if (!ngx_filename_cmp(namebase.data, ngx_de_name(&dir), namebase.len)) {
+            r = 1;
             break;
         }
     }
 
-    matched.data = ngx_pcalloc(pool, dirpath.len + ngx_de_namelen(&dir));
-    ngx_sprintf(matched.data, "%V/%s", &dirpath, ngx_de_name(&dir));
-    matched.len = dirpath.len + ngx_de_namelen(&dir) + 1;
+    if (r) {
+        matched.data = ngx_pcalloc(pool, dirpath.len + ngx_de_namelen(&dir));
+        ngx_sprintf(matched.data, "%V/%s", &dirpath, ngx_de_name(&dir));
+        matched.len = dirpath.len + ngx_de_namelen(&dir) + 1;
+    }
 
     return matched;
 }
