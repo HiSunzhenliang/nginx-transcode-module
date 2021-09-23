@@ -4,8 +4,8 @@
  */
 
 #include "ngx_http_transcode_module.h"
-#include <libgen.h>
 
+#include <libgen.h>
 
 #define MAX_SAMPLES (size_t)2048
 #define MAX_FMT_LEN (size_t)16
@@ -29,7 +29,7 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
     }
     if (conf->output_format) {
         ngx_http_complex_value(r, conf->output_format, &output_format);
-    }else{
+    } else {
         output_format = get_output_format(r->pool, r->uri);
     }
 
@@ -85,7 +85,7 @@ static ngx_int_t ngx_http_transcode_handler(ngx_http_request_t *r) {
         buff->memory = 1;
         buff->last_buf = 1;
         r->headers_out.content_length_n = output.len;
-    }else{
+    } else {
         r->header_only = 1;
         r->headers_out.content_length_n = 0;
     }
@@ -222,13 +222,13 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
     }
 
     while (ngx_read_dir(&dir) == NGX_OK) {
-        if(!ngx_filename_cmp(namebase.data,ngx_de_name(&dir),namebase.len)) {
+        if (!ngx_filename_cmp(namebase.data, ngx_de_name(&dir), namebase.len)) {
             break;
         }
     }
 
     matched.data = ngx_pcalloc(pool, dirpath.len + ngx_de_namelen(&dir));
-    ngx_sprintf(matched.data,"%V/%s",&dirpath,ngx_de_name(&dir));
+    ngx_sprintf(matched.data, "%V/%s", &dirpath, ngx_de_name(&dir));
     matched.len = dirpath.len + ngx_de_namelen(&dir) + 1;
 
     return matched;
@@ -273,7 +273,7 @@ static ngx_int_t transcode(ngx_str_t *output, ngx_pool_t *pool, ngx_log_t *log, 
         code = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto err;
     }
-    ngx_snprintf((u_char*)output_format, fmt.len, "%V", &fmt);
+    ngx_snprintf((u_char *)output_format, fmt.len, "%V", &fmt);
     out = sox_open_memstream_write(&buffer, &buffer_size, &in->signal, NULL, output_format, NULL);
     if (!out) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: decoder not found.");
