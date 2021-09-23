@@ -202,7 +202,8 @@ static ngx_str_t get_namebase(ngx_pool_t *pool, ngx_str_t path) {
 static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
     ngx_str_t matched = ngx_null_string;
     ngx_str_t dirpath = ngx_null_string;
-    ngx_str_t namebase = ngx_null_string;
+    ngx_str_t target_namebase = ngx_null_string;
+    ngx_str_t file_namebase = ngx_null_string;
     ngx_int_t r = 0;
     ngx_dir_t dir;
 
@@ -211,8 +212,8 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: get dir fail %V", &path);
         return matched;
     }
-    namebase = get_namebase(pool, path);
-    if (!namebase.data) {
+    target_namebase = get_namebase(pool, path);
+    if (!target_namebase.data) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "transcode: get dir fail %V", &path);
         return matched;
     }
@@ -223,7 +224,14 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
     }
 
     while (ngx_read_dir(&dir) == NGX_OK) {
-        if (!ngx_filename_cmp(namebase.data, ngx_de_name(&dir), namebase.len)) {
+        ngx_log_error(NGX_LOG_DEBUG, log, 0, "Traverse {%s,%d}",
+                      ngx_de_name(&dir), ngx_de_namelen(&dir));
+        file_namebase = get_namebase( pool, (ngx_str_t){ngx_de_namelen(&dir), ngx_de_name(&dir)});
+        if (!file_namebase.data) {
+            continue;
+        }
+
+        if (!ngx_filename_cmp(target_namebase.data, file_namebase.data, file_namebase.len)) {
             r = 1;
             break;
         }
