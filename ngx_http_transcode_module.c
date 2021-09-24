@@ -227,11 +227,18 @@ static ngx_str_t match_path(ngx_pool_t *pool, ngx_log_t *log, ngx_str_t path) {
         ngx_log_error(NGX_LOG_DEBUG, log, 0, "Traverse {%s,%d}",
                       ngx_de_name(&dir), ngx_de_namelen(&dir));
         file_namebase = get_namebase( pool, (ngx_str_t){ngx_de_namelen(&dir), ngx_de_name(&dir)});
-        if (!file_namebase.data) {
+        if (!file_namebase.data ||
+            !ngx_strncmp(file_namebase.data, "", file_namebase.len)) {
             continue;
         }
 
+        ngx_log_error(NGX_LOG_DEBUG, log, 0,
+                      "file_namebase {%s,%d} target_namebase {%s,%d}",
+                      file_namebase.data, file_namebase.len,
+                      target_namebase.data, target_namebase.len);
+
         if (!ngx_filename_cmp(target_namebase.data, file_namebase.data, file_namebase.len)) {
+            ngx_log_error(NGX_LOG_DEBUG, log, 0, "Got {%s,%d}", ngx_de_name(&dir), ngx_de_namelen(&dir));
             r = 1;
             break;
         }
