@@ -7,6 +7,62 @@
 
 #include <libgen.h>
 
+/* ngx interface */
+static ngx_command_t ngx_http_transcode_commands[] = {
+    {
+        ngx_string("nginx-transcode-module"),
+        NGX_HTTP_LOC_CONF | NGX_CONF_NOARGS,
+        ngx_http_transcode,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL
+    },
+    {
+        ngx_string("transcode_root"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_set_complex_value_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_transcode_loc_conf_t, root),
+        NULL
+    },
+    {
+        ngx_string("transcode_output_format"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_set_complex_value_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_transcode_loc_conf_t, output_format),
+        NULL
+    },
+    ngx_null_command
+};
+
+static ngx_http_module_t ngx_http_transcode_module_ctx = {
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    ngx_http_transcode_create_loc_conf,
+    ngx_http_transcode_merge_loc_conf
+};
+
+ngx_module_t ngx_http_transcode_module = {
+    NGX_MODULE_V1,
+    &ngx_http_transcode_module_ctx,
+    ngx_http_transcode_commands,
+    NGX_HTTP_MODULE,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NGX_MODULE_V1_PADDING
+};
+/* ngx interface end */
+
 #define MAX_SAMPLES (size_t)2048
 #define MAX_FMT_LEN (size_t)16
 
